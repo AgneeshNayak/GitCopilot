@@ -81,6 +81,7 @@ describe('getAllGames', () => {
 
 - Follow Arrange-Act-Assert.
 - One behaviour per `it`; avoid asserting unrelated things in a single case.
+- Comment only non-obvious fixture choices or test constraints; the test name and assertions should explain routine setup.
 - Don't mock the database — an in-memory Node SQLite instance is fast and exercises real SQL/joins.
 - Keep fixtures minimal but representative of relationships (game → publisher, game → category).
 - If a schema change breaks tests, regenerate migrations with `npm run db:generate` and update fixtures.
