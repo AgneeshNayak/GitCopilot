@@ -86,6 +86,23 @@ test.describe('Game Listing and Navigation', () => {
     });
   });
 
+  test('should filter games by category and publisher', async ({ page }) => {
+    await test.step('Open the filter form and choose a category and publisher', async () => {
+      await page.goto('/');
+      await page.getByRole('checkbox', { name: 'Strategy' }).check();
+      await page.getByTestId('publisher-filter').selectOption('CodeForge Studios');
+      await page.getByTestId('apply-filters-button').click();
+    });
+
+    await test.step('Verify the filtered results match the selected filters', async () => {
+      await expect(page).toHaveURL(/\/\?category=Strategy&publisher=CodeForge\+Studios$/);
+      const visibleCards = page.locator('[data-testid="game-card"]:visible');
+      await expect(visibleCards.first()).toBeVisible();
+      expect(await visibleCards.count()).toBeGreaterThan(0);
+      await expect(page.getByTestId('active-filter-summary')).toContainText('match the selected filters');
+    });
+  });
+
   test('should display a button to back the game', async ({ page }) => {
     await test.step('Navigate to game details page', async () => {
       await page.goto('/game/1');
