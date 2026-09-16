@@ -24,6 +24,23 @@ test.describe('Game Listing and Navigation', () => {
     });
   });
 
+  test('should navigate between paginated game pages', async ({ page }) => {
+    await test.step('Open the first game page', async () => {
+      await page.goto('/');
+      await expect(page.getByTestId('pagination')).toBeVisible();
+      await expect(page.getByTestId('page-summary')).toHaveText(/Page 1 of [2-9]/);
+      await expect(page.getByTestId('pagination-next')).toBeVisible();
+    });
+
+    await test.step('Open the next page', async () => {
+      await page.getByTestId('pagination-next').click();
+      await expect(page).toHaveURL('/page/2');
+      await expect(page.getByTestId('page-summary')).toHaveText(/Page 2 of [2-9]/);
+      await expect(page.getByTestId('pagination-previous')).toBeVisible();
+      await expect(page.getByTestId('pagination-next-disabled')).toBeVisible();
+    });
+  });
+
   test('should navigate to correct game details page when clicking on a game', async ({ page }) => {
     let gameId: string | null;
     let gameTitle: string | null;
@@ -84,6 +101,20 @@ test.describe('Game Listing and Navigation', () => {
         await expect(page.getByTestId('game-details-category')).not.toBeEmpty();
       }
     });
+  });
+
+  test('should navigate to a publisher page from game details', async ({ page }) => {
+    await page.goto('/game/1');
+    const publisherLink = page.getByTestId('game-details-publisher');
+    await expect(publisherLink).toBeVisible();
+    const publisherName = await publisherLink.textContent();
+    await publisherLink.click();
+
+    await expect(page).toHaveURL(/\/publisher\/\d+$/);
+    await expect(page.getByTestId('publisher-page')).toBeVisible();
+    await expect(page.getByTestId('page-hero-title')).toHaveText(publisherName ?? '');
+    await expect(page.getByTestId('publisher-games-grid')).toBeVisible();
+    await expect(page.getByTestId('game-card').first()).toBeVisible();
   });
 
   test('should filter games by category and publisher', async ({ page }) => {

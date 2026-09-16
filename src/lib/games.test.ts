@@ -7,7 +7,11 @@ import {
     getAllGames,
     getAllGameIds,
     getAllPublishers,
+    getGamesByPublisher,
+    getCatalogSummary,
     getGameById,
+    getPaginatedGames,
+    getPublisherById,
 } from './games';
 
 async function seedGames(db: Database, count: number): Promise<void> {
@@ -90,8 +94,52 @@ describe('games data-access helpers', () => {
             categories: ['Strategy', 'Puzzle'],
             publishers: ['Pub One'],
         });
-
         expect(filtered.map((game) => game.title)).toEqual(['Alpha Strategy', 'Beta Puzzle']);
+    });
+
+    it('returns a stable page of games with pagination metadata', async () => {
+        await seedGames(db, 5);
+
+        const result = await getPaginatedGames(db, 2, 2);
+
+        expect(result.totalCount).toBe(5);
+        expect(result.totalPages).toBe(3);
+        expect(result.page).toBe(2);
+        expect(result.games.map((game) => game.title)).toEqual(['Game 03', 'Game 04']);
+    });
+
+    it('clamps pagination pages and preserves filters', async () => {
+        await seedFilteredGames(db);
+
+        const result = await getPaginatedGames(db, 99, 2, { publishers: ['Pub Two'] });
+
+        expect(result.totalCount).toBe(2);
+        expect(result.totalPages).toBe(1);
+        expect(result.page).toBe(1);
+        expect(result.games.map((game) => game.title)).toEqual(['Delta Adventure', 'Gamma Strategy']);
+    });
+
+    it('returns catalog count and average of rated games', async () => {
+        await seedFilteredGames(db);
+        await db.insert(games).values({
+            title: 'Unrated Game',
+            description: 'No rating',
+            starRating: null,
+            categoryId: 1,
+            publisherId: 1,
+        });
+
+        await expect(getCatalogSummary(db)).resolves.toEqual({
+            totalGames: 5,
+            averageRating: 4.1,
+        });
+    });
+
+    it('returns a zero count and null average for an empty catalog', async () => {
+        await expect(getCatalogSummary(db)).resolves.toEqual({
+            totalGames: 0,
+            averageRating: null,
+        });
     });
 
     it('returns distinct categories and publishers in name order', async () => {
@@ -101,6 +149,20 @@ describe('games data-access helpers', () => {
 
         expect(categoriesList.map((category) => category.name)).toEqual(['Adventure', 'Puzzle', 'Strategy']);
         expect(publishersList.map((publisher) => publisher.name)).toEqual(['Pub One', 'Pub Two']);
+    });
+
+    it('returns publisher details and its games in title order', async () => {
+        await seedFilteredGames(db);
+        const publishersList = await getAllPublishers(db);
+        const publisher = await getPublisherById(db, publishersList[0].id);
+        const publisherGames = await getGamesByPublisher(db, publishersList[0].id);
+
+        expect(publisher).toEqual({
+            id: publishersList[0].id,
+            name: 'Pub One',
+            description: 'Publisher One',
+        });
+        expect(publisherGames.map((game) => game.title)).toEqual(['Alpha Strategy', 'Beta Puzzle']);
     });
 
     it('fetches a single game by id', async () => {

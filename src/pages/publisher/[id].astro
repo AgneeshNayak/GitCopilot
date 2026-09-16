@@ -1,0 +1,55 @@
+---
+import type { GetStaticPaths } from 'astro';
+import Layout from '../../layouts/Layout.astro';
+import GameCard from '../../components/GameCard.astro';
+import EmptyState from '../../components/EmptyState.astro';
+import PageHero from '../../components/PageHero.astro';
+import { getDatabase } from '../../lib/db';
+import { getAllPublishers, getGamesByPublisher, getPublisherById } from '../../lib/games';
+
+export const prerender = true;
+
+export const getStaticPaths = (async () => {
+  const publishers = await getAllPublishers(getDatabase());
+  return publishers.map((publisher) => ({ params: { id: String(publisher.id) } }));
+}) satisfies GetStaticPaths;
+
+const publisher = await getPublisherById(getDatabase(), Number(Astro.params.id));
+
+if (!publisher) {
+  return Astro.redirect('/404');
+}
+
+const publisherGames = await getGamesByPublisher(getDatabase(), publisher.id);
+---
+
+<Layout title={`${publisher.name} - Tailspin Toys`}>
+  <div class="py-8" data-testid="publisher-page">
+    <PageHero
+      title={publisher.name}
+      subtitle={publisher.description ?? 'Explore games from this publisher.'}
+    />
+
+    <section aria-labelledby="publisher-games-heading">
+      <h2 id="publisher-games-heading" class="mb-6 text-2xl font-medium text-slate-100">
+        Games by {publisher.name}
+      </h2>
+
+      {publisherGames.length === 0 ? (
+        <EmptyState text="This publisher has no games in the catalog yet." />
+      ) : (
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3" data-testid="publisher-games-grid">
+          {publisherGames.map((game) => <GameCard game={game} />)}
+        </div>
+      )}
+    </section>
+
+    <a
+      href="/"
+      data-testid="publisher-home-link"
+      class="mt-8 inline-flex rounded-lg border border-slate-600 px-4 py-2 text-sm font-medium text-slate-200 transition hover:border-slate-500 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+    >
+      Back to all games
+    </a>
+  </div>
+</Layout>

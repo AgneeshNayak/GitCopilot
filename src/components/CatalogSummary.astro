@@ -1,0 +1,22 @@
+---
+import type { CatalogSummary as CatalogSummaryData } from '../lib/games';
+
+/** Displays the catalog size and average rating at a glance. */
+interface Props {
+  summary: CatalogSummaryData;
+}
+
+const { summary } = Astro.props;
+const averageRating = summary.averageRating === null ? 'No ratings yet' : `${summary.averageRating.toFixed(1)} / 5`;
+---
+
+<section class="mb-8 grid gap-4 sm:grid-cols-2" aria-label="Catalog summary" data-testid="catalog-summary">
+  <div class="rounded-2xl border border-slate-700 bg-slate-800/70 p-5 shadow-lg">
+    <p class="text-sm font-medium uppercase tracking-[0.08em] text-slate-400">Games in the catalog</p>
+    <p class="mt-2 text-3xl font-semibold text-slate-100" data-testid="catalog-game-count">{summary.totalGames}</p>
+  </div>
+  <div class="rounded-2xl border border-slate-700 bg-slate-800/70 p-5 shadow-lg">
+    <p class="text-sm font-medium uppercase tracking-[0.08em] text-slate-400">Average community rating</p>
+    <p class="mt-2 text-3xl font-semibold text-slate-100" data-testid="catalog-average-rating">{averageRating}</p>
+  </div>
+</section>
