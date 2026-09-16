@@ -1,7 +1,13 @@
-import { eq, asc, and, count, inArray } from 'drizzle-orm';
+import { eq, asc, and, avg, count, inArray } from 'drizzle-orm';
 import type { Database } from './db';
 import { games, categories, publishers } from '../../db/schema';
 import type { Game } from '../types/game';
+
+export interface PublisherDetails {
+    id: number;
+    name: string;
+    description: string | null;
+}
 
 export interface GameFilters {
     categories?: string[];
@@ -14,6 +20,11 @@ export interface PaginatedGames {
     pageSize: number;
     totalCount: number;
     totalPages: number;
+}
+
+export interface CatalogSummary {
+    totalGames: number;
+    averageRating: number | null;
 }
 
 const gameSelection = {
@@ -93,6 +104,57 @@ export async function getAllPublishers(db: Database): Promise<Array<{ id: number
         .select({ id: publishers.id, name: publishers.name })
         .from(publishers)
         .orderBy(asc(publishers.name));
+}
+
+/**
+ * Returns a publisher's name and description, or null when the publisher is missing.
+ *
+ * @param db Injectable database connection used to read the publisher.
+ * @param id Publisher identifier used by the static route.
+ * @returns Publisher details or null when no matching publisher exists.
+ */
+export async function getPublisherById(db: Database, id: number): Promise<PublisherDetails | null> {
+    const [publisher] = await db
+        .select({ id: publishers.id, name: publishers.name, description: publishers.description })
+        .from(publishers)
+        .where(eq(publishers.id, id));
+    return publisher ?? null;
+}
+
+/**
+ * Returns all games for a publisher in deterministic title order.
+ *
+ * @param db Injectable database connection used to query games and relations.
+ * @param publisherId Publisher identifier whose games should be returned.
+ * @returns Games belonging to the publisher, ordered alphabetically by title.
+ */
+export async function getGamesByPublisher(db: Database, publisherId: number): Promise<Game[]> {
+    const rows = await baseGamesQuery(db)
+        .where(eq(games.publisherId, publisherId))
+        .orderBy(asc(games.title));
+    return rows.map(mapGame);
+}
+
+/**
+ * Returns the catalog size and average rating for all rated games.
+ *
+ * @param db Injectable database connection used to read catalog aggregates.
+ * @returns A deterministic summary with a null average when no games are rated.
+ */
+export async function getCatalogSummary(db: Database): Promise<CatalogSummary> {
+    const [summary] = await db
+        .select({
+            totalGames: count(games.id),
+            averageRating: avg(games.starRating),
+        })
+        .from(games);
+
+    return {
+        totalGames: summary?.totalGames ?? 0,
+        averageRating: summary?.averageRating === null || summary?.averageRating === undefined
+            ? null
+            : Number(summary.averageRating),
+    };
 }
 
 /** All games ordered by title, optionally filtered to one or more category and publisher names. */

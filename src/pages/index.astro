@@ -1,9 +1,10 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import CatalogSummary from '../components/CatalogSummary.astro';
 import GameListing from '../components/GameListing.astro';
 import PageHero from '../components/PageHero.astro';
 import { getDatabase } from '../lib/db';
-import { getAllCategories, getAllPublishers, getPaginatedGames } from '../lib/games';
+import { getAllCategories, getAllPublishers, getCatalogSummary, getPaginatedGames } from '../lib/games';
 
 export const prerender = true;
 
@@ -11,6 +12,7 @@ const db = getDatabase();
 const page = await getPaginatedGames(db, 1, 12);
 const categories = await getAllCategories(db);
 const publishers = await getAllPublishers(db);
+const summary = await getCatalogSummary(db);
 ---
 
 <Layout title="Tailspin Toys - Crowdfunding your new favorite game!">
@@ -19,6 +21,7 @@ const publishers = await getAllPublishers(db);
       title="Welcome to Tailspin Toys"
       subtitle="Find your next game! And maybe even back one! Explore our collection!"
     />
+    <CatalogSummary summary={summary} />
     <GameListing
       categories={categories}
       publishers={publishers}

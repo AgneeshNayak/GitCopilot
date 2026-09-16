@@ -103,6 +103,20 @@ test.describe('Game Listing and Navigation', () => {
     });
   });
 
+  test('should navigate to a publisher page from game details', async ({ page }) => {
+    await page.goto('/game/1');
+    const publisherLink = page.getByTestId('game-details-publisher');
+    await expect(publisherLink).toBeVisible();
+    const publisherName = await publisherLink.textContent();
+    await publisherLink.click();
+
+    await expect(page).toHaveURL(/\/publisher\/\d+$/);
+    await expect(page.getByTestId('publisher-page')).toBeVisible();
+    await expect(page.getByTestId('page-hero-title')).toHaveText(publisherName ?? '');
+    await expect(page.getByTestId('publisher-games-grid')).toBeVisible();
+    await expect(page.getByTestId('game-card').first()).toBeVisible();
+  });
+
   test('should filter games by category and publisher', async ({ page }) => {
     await test.step('Open the filter form and choose a category and publisher', async () => {
       await page.goto('/');
