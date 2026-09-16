@@ -8,6 +8,7 @@ import {
     getAllGameIds,
     getAllPublishers,
     getGameById,
+    getPaginatedGames,
 } from './games';
 
 async function seedGames(db: Database, count: number): Promise<void> {
@@ -90,8 +91,29 @@ describe('games data-access helpers', () => {
             categories: ['Strategy', 'Puzzle'],
             publishers: ['Pub One'],
         });
-
         expect(filtered.map((game) => game.title)).toEqual(['Alpha Strategy', 'Beta Puzzle']);
+    });
+
+    it('returns a stable page of games with pagination metadata', async () => {
+        await seedGames(db, 5);
+
+        const result = await getPaginatedGames(db, 2, 2);
+
+        expect(result.totalCount).toBe(5);
+        expect(result.totalPages).toBe(3);
+        expect(result.page).toBe(2);
+        expect(result.games.map((game) => game.title)).toEqual(['Game 03', 'Game 04']);
+    });
+
+    it('clamps pagination pages and preserves filters', async () => {
+        await seedFilteredGames(db);
+
+        const result = await getPaginatedGames(db, 99, 2, { publishers: ['Pub Two'] });
+
+        expect(result.totalCount).toBe(2);
+        expect(result.totalPages).toBe(1);
+        expect(result.page).toBe(1);
+        expect(result.games.map((game) => game.title)).toEqual(['Delta Adventure', 'Gamma Strategy']);
     });
 
     it('returns distinct categories and publishers in name order', async () => {

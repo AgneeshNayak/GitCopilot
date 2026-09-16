@@ -1,0 +1,40 @@
+---
+import type { GetStaticPaths } from 'astro';
+import Layout from '../../layouts/Layout.astro';
+import GameListing from '../../components/GameListing.astro';
+import PageHero from '../../components/PageHero.astro';
+import { getDatabase } from '../../lib/db';
+import { getAllCategories, getAllPublishers, getPaginatedGames } from '../../lib/games';
+
+export const prerender = true;
+
+export const getStaticPaths = (async () => {
+  const pageSize = 12;
+  const firstPage = await getPaginatedGames(getDatabase(), 1, pageSize);
+  return Array.from({ length: firstPage.totalPages }, (_, index) => ({
+    params: { page: String(index + 1) },
+  }));
+}) satisfies GetStaticPaths;
+
+const db = getDatabase();
+const requestedPage = Number(Astro.params.page);
+const page = await getPaginatedGames(db, requestedPage, 12);
+const categories = await getAllCategories(db);
+const publishers = await getAllPublishers(db);
+---
+
+<Layout title={`Games - Page ${page.page} - Tailspin Toys`}>
+  <div class="py-8">
+    <PageHero
+      title="Explore all games"
+      subtitle="Browse the full Tailspin Toys catalog, one page at a time."
+    />
+    <GameListing
+      categories={categories}
+      publishers={publishers}
+      games={page.games}
+      currentPage={page.page}
+      totalPages={page.totalPages}
+    />
+  </div>
+</Layout>
