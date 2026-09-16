@@ -40,4 +40,12 @@ export default [
       parser: tseslint.parser,
     },
   },
+
+  // Exported data-layer functions must expose typed contracts for callers and tests.
+  {
+    files: ["db/**/*.ts", "src/lib/**/*.ts"],
+    rules: {
+      "@typescript-eslint/explicit-module-boundary-types": "error",
+    },
+  },
 ];
